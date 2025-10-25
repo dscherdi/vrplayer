@@ -177,7 +177,9 @@
             <video
                 id="video"
                 crossorigin="anonymous"
-                preload="metadata"
+                preload="auto"
+                playsinline
+                webkit-playsinline
             ></video>
 
             <div id="instructions">
@@ -196,14 +198,23 @@
 
             <div id="controls">
                 <input type="file" id="fileInput" accept="video/*" />
-                <button id="modeMono" class="active">Mono</button>
-                <button id="mode180">180°</button>
+                <button id="modeMono">Mono</button>
+                <button id="mode180" class="active">180°</button>
                 <button id="mode360">360°</button>
                 <button id="playPause">▶️</button>
                 <div id="progress">
                     <div id="progressBar"></div>
                 </div>
                 <div id="time">0:00 / 0:00</div>
+                <input
+                    type="range"
+                    id="volume"
+                    min="0"
+                    max="1"
+                    step="0.1"
+                    value="1"
+                    style="width: 80px"
+                />
                 <button id="fullscreen">⛶</button>
             </div>
         </div>

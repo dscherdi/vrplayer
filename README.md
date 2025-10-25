@@ -1,14 +1,15 @@
 # VR Video Player
 
-A lightweight web-based VR video player that supports both 180° and 360° video playback using Three.js.
+A lightweight web-based VR video player that supports mono, 180° and 360° video playback using Three.js.
 
 ## Features
 
 - **Mono, 180° and 360° video support** - Switch between viewing modes
 - **Mouse/touch controls** - Click and drag to look around
-- **Standard video controls** - Play, pause, seek, progress bar
+- **Standard video controls** - Play, pause, seek, volume control
 - **File upload & drag/drop** - Load local video files directly or drag and drop
 - **Fullscreen mode** - Immersive viewing experience
+- **Audio support** - Full volume control and audio playback
 - **Responsive design** - Works on desktop and mobile devices
 - **WebGL acceleration** - Smooth performance using Three.js
 
@@ -32,6 +33,7 @@ A lightweight web-based VR video player that supports both 180° and 360° video
 - **Mouse/Touch**: Click and drag to rotate camera view
 - **Play/Pause**: Toggle video playback
 - **Progress Bar**: Click to seek to specific time
+- **Volume Slider**: Adjust audio volume
 - **Mode Toggle**: Switch between Mono, 180° and 360° viewing modes
 - **Fullscreen**: Enter/exit fullscreen mode for immersive viewing
 - **Drag & Drop**: Drag video files directly onto the browser window

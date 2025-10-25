@@ -15,7 +15,7 @@ class VRVideoPlayer {
       phi: 0,
       theta: 0,
     };
-    this.mode = "mono"; // 'mono', '180' or '360'
+    this.mode = "180"; // 'mono', '180' or '360'
     this.isPlaying = false;
 
     this.init();
@@ -63,13 +63,14 @@ class VRVideoPlayer {
       this.scene.remove(this.sphere);
     }
 
-    let geometry, material;
-
     // Create geometry based on mode
+    let geometry;
     if (this.mode === "mono") {
       // Create plane for mono mode
       const aspectRatio =
-        this.video.videoWidth / this.video.videoHeight || 16 / 9;
+        this.video && this.video.videoWidth
+          ? this.video.videoWidth / this.video.videoHeight
+          : 16 / 9;
       const width = 10;
       const height = width / aspectRatio;
       geometry = new THREE.PlaneGeometry(width, height);
@@ -79,6 +80,7 @@ class VRVideoPlayer {
     }
 
     // Create material
+    let material;
     if (this.texture) {
       material = new THREE.MeshBasicMaterial({
         map: this.texture,
@@ -96,7 +98,7 @@ class VRVideoPlayer {
 
     // Position and adjust based on mode
     if (this.mode === "mono") {
-      this.sphere.position.z = -5;
+      this.sphere.position.set(0, 0, -5);
     } else {
       this.sphere.position.set(0, 0, 0);
 
@@ -139,6 +141,10 @@ class VRVideoPlayer {
     const playPause = document.getElementById("playPause");
     playPause.addEventListener("click", () => this.togglePlayPause());
 
+    // Volume control
+    const volume = document.getElementById("volume");
+    volume.addEventListener("input", (e) => this.setVolume(e.target.value));
+
     // Fullscreen button
     const fullscreen = document.getElementById("fullscreen");
     fullscreen.addEventListener("click", () => this.toggleFullscreen());
@@ -160,7 +166,18 @@ class VRVideoPlayer {
 
     // Video events
     this.video.addEventListener("loadedmetadata", () => this.onVideoLoaded());
+    this.video.addEventListener("loadeddata", () => this.onVideoLoadedData());
+    this.video.addEventListener("canplay", () => this.onVideoCanPlay());
+    this.video.addEventListener("canplaythrough", () =>
+      this.onVideoCanPlayThrough(),
+    );
     this.video.addEventListener("timeupdate", () => this.updateProgress());
+    this.video.addEventListener("play", () => this.onVideoPlay());
+    this.video.addEventListener("pause", () => this.onVideoPause());
+    this.video.addEventListener("ended", () => this.onVideoEnded());
+    this.video.addEventListener("waiting", () => this.onVideoWaiting());
+    this.video.addEventListener("stalled", () => this.onVideoStalled());
+    this.video.addEventListener("error", (e) => this.onVideoError(e));
 
     // Window resize
     window.addEventListener("resize", () => this.onWindowResize());
@@ -177,27 +194,48 @@ class VRVideoPlayer {
   loadVideo(file) {
     if (!file) return;
 
+    // Reset video state
+    this.video.pause();
+    this.isPlaying = false;
+    this.updatePlayButton();
+
+    // Clean up previous video URL
+    if (this.video.src && this.video.src.startsWith("blob:")) {
+      URL.revokeObjectURL(this.video.src);
+    }
+
     const url = URL.createObjectURL(file);
     this.video.src = url;
+    this.video.preload = "auto";
     this.video.load();
 
     // Create video texture
     this.texture = new THREE.VideoTexture(this.video);
     this.texture.minFilter = THREE.LinearFilter;
     this.texture.magFilter = THREE.LinearFilter;
+    this.texture.format = THREE.RGBFormat;
+    this.texture.generateMipmaps = false;
 
     // Update sphere material
     this.createSphere();
   }
 
   onVideoLoaded() {
-    console.log(
-      "Video loaded:",
-      this.video.videoWidth,
-      "x",
-      this.video.videoHeight,
-    );
     this.updateTimeDisplay();
+  }
+
+  onVideoLoadedData() {}
+
+  onVideoCanPlay() {}
+
+  onVideoCanPlayThrough() {}
+
+  onVideoWaiting() {}
+
+  onVideoStalled() {}
+
+  onVideoError(e) {
+    console.error("Video error:", e, this.video.error);
   }
 
   setMode(mode) {
@@ -214,11 +252,14 @@ class VRVideoPlayer {
       .getElementById("mode360")
       .classList.toggle("active", mode === "360");
 
-    // Reset camera for mono mode
+    // Reset camera position when switching modes
     if (mode === "mono") {
       this.controls.lat = 0;
       this.controls.lon = 0;
-      this.updateCamera();
+    } else if (this.mode === "mono") {
+      // Switching from mono to VR mode
+      this.controls.lat = 0;
+      this.controls.lon = 0;
     }
 
     // Recreate sphere with new geometry
@@ -228,14 +269,38 @@ class VRVideoPlayer {
   togglePlayPause() {
     if (!this.video.src) return;
 
-    if (this.isPlaying) {
-      this.video.pause();
-      document.getElementById("playPause").textContent = "▶️";
+    if (this.video.paused) {
+      this.video.play().catch((err) => {
+        console.error("Play failed:", err);
+        this.updatePlayButton();
+      });
     } else {
-      this.video.play();
-      document.getElementById("playPause").textContent = "⏸️";
+      this.video.pause();
     }
-    this.isPlaying = !this.isPlaying;
+  }
+
+  setVolume(value) {
+    this.video.volume = parseFloat(value);
+  }
+
+  onVideoPlay() {
+    this.isPlaying = true;
+    this.updatePlayButton();
+  }
+
+  onVideoPause() {
+    this.isPlaying = false;
+    this.updatePlayButton();
+  }
+
+  onVideoEnded() {
+    this.isPlaying = false;
+    this.updatePlayButton();
+  }
+
+  updatePlayButton() {
+    const playPauseBtn = document.getElementById("playPause");
+    playPauseBtn.textContent = this.isPlaying ? "⏸️" : "▶️";
   }
 
   toggleFullscreen() {
@@ -305,9 +370,12 @@ class VRVideoPlayer {
 
     this.controls.lon += deltaX * 0.1;
 
+    this.controls.lat -= deltaY * 0.1;
+
     // Limit vertical movement in mono mode
-    if (this.mode !== "mono") {
-      this.controls.lat -= deltaY * 0.1;
+    if (this.mode === "mono") {
+      this.controls.lat = Math.max(-20, Math.min(20, this.controls.lat));
+    } else {
       this.controls.lat = Math.max(-85, Math.min(85, this.controls.lat));
     }
 
@@ -346,9 +414,12 @@ class VRVideoPlayer {
 
     this.controls.lon += deltaX * 0.1;
 
+    this.controls.lat -= deltaY * 0.1;
+
     // Limit vertical movement in mono mode
-    if (this.mode !== "mono") {
-      this.controls.lat -= deltaY * 0.1;
+    if (this.mode === "mono") {
+      this.controls.lat = Math.max(-20, Math.min(20, this.controls.lat));
+    } else {
       this.controls.lat = Math.max(-85, Math.min(85, this.controls.lat));
     }
 
@@ -364,18 +435,24 @@ class VRVideoPlayer {
   }
 
   updateCamera() {
-    if (this.mode === "mono") {
-      // For mono mode, just rotate left/right around the plane
-      this.camera.position.set(0, 0, 0);
-      this.controls.theta = THREE.MathUtils.degToRad(this.controls.lon);
-      const x = Math.sin(this.controls.theta) * 0.1;
-      const z = -5 + Math.cos(this.controls.theta) * 0.1;
-      this.camera.lookAt(x, 0, z);
-    } else {
-      // For 180/360 modes, use spherical coordinates
-      this.controls.phi = THREE.MathUtils.degToRad(90 - this.controls.lat);
-      this.controls.theta = THREE.MathUtils.degToRad(this.controls.lon);
+    this.controls.phi = THREE.MathUtils.degToRad(90 - this.controls.lat);
+    this.controls.theta = THREE.MathUtils.degToRad(this.controls.lon);
 
+    if (this.mode === "mono") {
+      // For mono mode, position camera to look at the plane
+      const distance = 5;
+      const x =
+        Math.sin(this.controls.phi) * Math.cos(this.controls.theta) * distance;
+      const y = Math.cos(this.controls.phi) * distance;
+      const z =
+        Math.sin(this.controls.phi) * Math.sin(this.controls.theta) * distance -
+        5;
+
+      this.camera.position.set(x, y, z);
+      this.camera.lookAt(0, 0, -5);
+    } else {
+      // For 180/360 modes, use spherical coordinates from center
+      this.camera.position.set(0, 0, 0);
       const x = Math.sin(this.controls.phi) * Math.cos(this.controls.theta);
       const y = Math.cos(this.controls.phi);
       const z = Math.sin(this.controls.phi) * Math.sin(this.controls.theta);
@@ -428,8 +505,12 @@ class VRVideoPlayer {
   animate() {
     requestAnimationFrame(() => this.animate());
 
-    // Update video texture
-    if (this.texture && this.video.readyState >= this.video.HAVE_CURRENT_DATA) {
+    // Update video texture only when video is playing and has new data
+    if (
+      this.texture &&
+      this.isPlaying &&
+      this.video.readyState >= this.video.HAVE_CURRENT_DATA
+    ) {
       this.texture.needsUpdate = true;
     }
 
