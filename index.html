@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>VR Video Player</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: Arial, sans-serif;
+                background: #000;
+                overflow: hidden;
+            }
+
+            #container {
+                position: relative;
+                width: 100vw;
+                height: 100vh;
+            }
+
+            #canvas {
+                display: block;
+            }
+
+            #controls {
+                position: absolute;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0, 0, 0, 0.7);
+                padding: 15px;
+                border-radius: 10px;
+                display: flex;
+                gap: 15px;
+                align-items: center;
+                z-index: 1000;
+            }
+
+            #video {
+                display: none;
+            }
+
+            button {
+                background: #444;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 14px;
+            }
+
+            button:hover {
+                background: #666;
+            }
+
+            button.active {
+                background: #0066cc;
+            }
+
+            input[type="file"] {
+                color: white;
+                background: #444;
+                border: none;
+                padding: 8px;
+                border-radius: 5px;
+            }
+
+            #playPause {
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                font-size: 20px;
+            }
+
+            #progress {
+                width: 200px;
+                height: 5px;
+                background: #333;
+                border-radius: 3px;
+                cursor: pointer;
+            }
+
+            #progressBar {
+                height: 100%;
+                background: #0066cc;
+                border-radius: 3px;
+                width: 0%;
+                transition: width 0.1s;
+            }
+
+            #time {
+                color: white;
+                font-size: 14px;
+                min-width: 80px;
+                text-align: center;
+            }
+
+            #instructions {
+                position: absolute;
+                top: 20px;
+                left: 20px;
+                color: white;
+                background: rgba(0, 0, 0, 0.7);
+                padding: 10px;
+                border-radius: 5px;
+                font-size: 14px;
+                z-index: 1000;
+            }
+
+            #dropZone {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 100, 200, 0.1);
+                border: 3px dashed #0066cc;
+                display: none;
+                justify-content: center;
+                align-items: center;
+                z-index: 2000;
+                pointer-events: none;
+            }
+
+            #dropZone.active {
+                display: flex;
+            }
+
+            #dropMessage {
+                background: rgba(0, 0, 0, 0.8);
+                color: white;
+                padding: 30px;
+                border-radius: 10px;
+                text-align: center;
+                font-size: 24px;
+            }
+
+            body.drag-over {
+                pointer-events: none;
+            }
+
+            /* Fullscreen styles */
+            :fullscreen #container {
+                background: #000;
+            }
+
+            :-webkit-full-screen #container {
+                background: #000;
+            }
+
+            :-moz-full-screen #container {
+                background: #000;
+            }
+
+            :fullscreen #controls {
+                bottom: 30px;
+            }
+
+            :-webkit-full-screen #controls {
+                bottom: 30px;
+            }
+
+            :-moz-full-screen #controls {
+                bottom: 30px;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="container">
+            <canvas id="canvas"></canvas>
+            <video
+                id="video"
+                crossorigin="anonymous"
+                preload="metadata"
+            ></video>
+
+            <div id="instructions">
+                <div>📱 Click and drag to look around</div>
+                <div>⚡ Load or drag & drop mono, 180° or 360° video files</div>
+            </div>
+
+            <div id="dropZone">
+                <div id="dropMessage">
+                    <div>📁 Drop video file here</div>
+                    <div style="font-size: 16px; margin-top: 10px">
+                        Supports MP4, WebM, OGV formats
+                    </div>
+                </div>
+            </div>
+
+            <div id="controls">
+                <input type="file" id="fileInput" accept="video/*" />
+                <button id="modeMono" class="active">Mono</button>
+                <button id="mode180">180°</button>
+                <button id="mode360">360°</button>
+                <button id="playPause">▶️</button>
+                <div id="progress">
+                    <div id="progressBar"></div>
+                </div>
+                <div id="time">0:00 / 0:00</div>
+                <button id="fullscreen">⛶</button>
+            </div>
+        </div>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+        <script src="app.js"></script>
+    </body>
+</html>
